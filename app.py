@@ -159,9 +159,10 @@ if prompt := st.chat_input("Escreva sua dúvida aqui..."):
                     system_prompt = {"role": "system", "content": f"{prompts_especificos[materia]} Responda em português."}
                     mensagens_com_contexto = [system_prompt] + st.session_state.messages
                     
+                    
                     chat_completion = client.chat.completions.create(
                         messages=mensagens_com_contexto,
-                        model="llama-3.1-8b-instant",
+                        model="llama-3.3-70b-versatile", # <--- Nova IA mais potente
                         temperature=0.6,
                     )
                     response = chat_completion.choices[0].message.content
