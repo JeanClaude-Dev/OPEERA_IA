@@ -78,8 +78,7 @@ if prompt := st.chat_input("Como posso te ajudar com essa matéria?"):
             try:
                 chat_completion = client.chat.completions.create(
                     messages=st.session_state.messages,
-                    #model="llama-3-8b-8192", # Modelo ultra rápido e grátis
-                    model="llama-3.1-8b-instant",
+                    model="llama-3-8b-8192", # Modelo ultra rápido e grátis
                     temperature=0.6,
                 )
                 response = chat_completion.choices[0].message.content
