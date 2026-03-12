@@ -8,47 +8,62 @@ st.set_page_config(page_title="OPEERA - Tutor Inteligente", page_icon="🎓", la
 # --- ESTILIZAÇÃO PERSONALIZADA (CSS) ---
 st.markdown(f"""
     <style>
-    /* Cor principal nos títulos da Sidebar */
-    [data-testid="stSidebar"] h1 {{
-        color: #07b458;
+    /* Estilo para o Título OPEERA com Tooltip */
+    .tooltip {{
+        position: relative;
+        display: inline-block;
+        font-size: 42px;
         font-weight: 800;
+        color: #07b458; 
+        margin-bottom: 5px;
+        cursor: help;
     }}
-    
-    /* Customização das mensagens do Chat */
-    .stChatMessage {{
-        border-radius: 15px;
-        margin-bottom: 10px;
+
+    .tooltip .tooltiptext {{
+        visibility: hidden;
+        width: 280px;
+        background-color: #333;
+        color: #fff;
+        text-align: center;
+        border-radius: 8px;
+        padding: 10px;
+        position: absolute;
+        z-index: 1;
+        bottom: 110%; 
+        left: 0%;
+        opacity: 0;
+        transition: opacity 0.3s;
+        font-size: 14px;
+        font-weight: normal;
+        line-height: 1.4;
     }}
-    
-    /* Borda de destaque na mensagem do assistente */
+
+    .tooltip:hover .tooltiptext {{
+        visibility: visible;
+        opacity: 1;
+    }}
+
+    /* Cor da pergunta na Sidebar (Azul Escuro) */
+    .stSelectbox label p {{
+        color: #1A237E !important; 
+        font-weight: bold;
+        font-size: 16px;
+    }}
+
+    /* Estilo da barra lateral */
+    [data-testid="stSidebar"] {{
+        background-color: #ffffff;
+    }}
+
+    /* Estilo das mensagens */
     [data-testid="stChatMessageAssistant"] {{
         border: 1px solid #07b458;
         background-color: #f9fffb;
-    }}
-
-    /* Estilização do Botão de Reiniciar */
-    .stButton>button {{
-        width: 100%;
-        border-radius: 20px;
-        border: 1px solid #07b458;
-        color: #07b458;
-        background-color: transparent;
+        border-radius: 15px;
     }}
     
-    .stButton>button:hover {{
-        background-color: #07b458;
-        color: white;
-    }}
-
-    /* Cor do Spinner e elementos de carregamento */
-    .stSpinner > div {{
-        border-top-color: #07b458 !important;
-    }}
-    
-    /* Ajuste da barra lateral */
-    [data-testid="stSidebar"] {{
-        background-color: #ffffff;
-        border-right: 1px solid #eee;
+    [data-testid="stChatMessageUser"] {{
+        border-radius: 15px;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -57,68 +72,97 @@ st.markdown(f"""
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception:
-    st.error("⚠️ Erro: Chave 'GROQ_API_KEY' não encontrada.")
+    st.error("⚠️ Configuração Necessária: Adicione a 'GROQ_API_KEY' nos Secrets do Streamlit.")
     st.stop()
+
+# --- INICIALIZAÇÃO DE ESTADOS ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 # --- BARRA LATERAL (SIDEBAR) ---
 with st.sidebar:
-    # Logo e Título
     st.image("logo.png", use_column_width=True)
     st.title("Área do Aluno")
     
-    # Menu de Matérias com ícone monocromático
+    # Seletor de Matéria
     materia = st.selectbox(
-        "📚 O que vamos estudar hoje?",
+        "Sobre o que vamos estudar hoje?",
         ("Geral", "Matemática", "Português", "História e Geografia", "Ciências e Biologia")
     )
     
-    prompts_especificos = {
-        "Geral": "Você é um tutor educacional versátil da Opee Educação. Explique de forma didática.",
-        "Matemática": "Você é um professor de matemática. Use LaTeX e mostre o passo a passo.",
-        "Português": "Você é um professor de gramática. Foque na norma culta e clareza.",
-        "História e Geografia": "Você é um professor de humanidades. Foque em contextos e causas.",
-        "Ciências e Biologia": "Você é um professor de ciências. Use analogias práticas."
-    }
-    
     st.divider()
-    if st.button("Limpar Histórico"):
+    
+    # BARRA DE PROGRESSO
+    # O progresso aumenta com base no número de interações (máximo 10 para completar a barra)
+    st.subheader("🎯 Seu Progresso")
+    num_interacoes = len([m for m in st.session_state.messages if m["role"] == "user"])
+    progresso = min(num_interacoes * 10, 100) # 10% por pergunta, até 100%
+    st.progress(progresso / 100)
+    st.caption(f"Você já fez {num_interacoes} perguntas nesta sessão.")
+    
+    if progresso == 100:
+        st.success("Incrível! Você atingiu a meta de estudos hoje! 🏆")
+
+    st.divider()
+    if st.button("🗑️ Reiniciar Conversa"):
         st.session_state.messages = []
         st.rerun()
     
     st.caption("Desenvolvido por: Jcb | Opee Educação")
 
-# --- INICIALIZAÇÃO DO HISTÓRICO ---
-if "messages" not in st.session_state or len(st.session_state.messages) == 0:
-    st.session_state.messages = [
-        {"role": "system", "content": f"{prompts_especificos[materia]} Responda sempre em português. Seja encorajador."}
-    ]
+# --- INTERFACE PRINCIPAL ---
 
-# --- INTERFACE DE CHAT ---
-st.markdown(f"<h3 style='color: #444;'>Assistente de {materia}</h3>", unsafe_allow_html=True)
+# Título com Explicação ao passar o mouse
+st.markdown("""
+    <div class="tooltip">Opeera (Gestor Educacional)
+        <span class="tooltiptext">
+            União do nome OPEE com "Era" (uma nova era de aprendizado) ou uma "ópera" de conhecimentos.
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
 
-# Exibir histórico (usando ícones cinzas para manter o foco no verde do layout)
+st.markdown(f"<h3 style='color: #07b458; margin-top: -15px;'>Assistente de {materia}</h3>", unsafe_allow_html=True)
+
+# --- LÓGICA DO CHAT ---
+prompts_especificos = {
+    "Geral": "Você é um tutor da Opee Educação. Explique de forma didática.",
+    "Matemática": "Você é um professor de matemática. Use LaTeX para fórmulas.",
+    "Português": "Você é um professor de gramática. Foque na clareza e norma culta.",
+    "História e Geografia": "Você é um historiador/geógrafo. Foque em contextos e causas.",
+    "Ciências e Biologia": "Você é um cientista. Use analogias do cotidiano."
+}
+
+# Prompt de sistema (injetado sempre na primeira interação)
+system_prompt = {"role": "system", "content": f"{prompts_especificos[materia]} Responda em português e seja motivador."}
+
+# Exibir histórico
 for message in st.session_state.messages:
-    if message["role"] != "system":
-        avatar = "👤" if message["role"] == "user" else "🤖"
-        with st.chat_message(message["role"], avatar=avatar):
-            st.markdown(message["content"])
+    with st.chat_message(message["role"], avatar="👤" if message["role"] == "user" else "🤖"):
+        st.markdown(message["content"])
 
-# --- LÓGICA DE INTERAÇÃO ---
-if prompt := st.chat_input("Escreva sua dúvida aqui..."):
+# Entrada do Aluno
+if prompt := st.chat_input("Como posso te ajudar agora?"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
     with st.chat_message("assistant", avatar="🤖"):
-        with st.spinner("OPEERA está processando..."):
+        with st.spinner("OPEERA está formulando sua explicação..."):
             try:
+                # Prepara o envio incluindo o system prompt atualizado
+                mensagens_com_contexto = [system_prompt] + st.session_state.messages
+                
                 chat_completion = client.chat.completions.create(
-                    messages=st.session_state.messages,
+                    messages=mensagens_com_contexto,
                     model="llama-3.1-8b-instant",
                     temperature=0.6,
                 )
                 response = chat_completion.choices[0].message.content
                 st.markdown(response)
                 st.session_state.messages.append({"role": "assistant", "content": response})
+                
+                # Força o refresh para atualizar a barra de progresso na lateral
+                st.rerun()
+                
             except Exception as e:
                 st.error(f"Erro de conexão: {e}")
