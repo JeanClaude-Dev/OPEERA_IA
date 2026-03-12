@@ -43,16 +43,17 @@ st.markdown(f"""
         opacity: 1;
     }}
 
+    /* Cor do Título Área do Aluno na Sidebar (Verde OPEE) */
+    [data-testid="stSidebar"] h1 {{
+        color: #07b458 !important;
+        font-size: 24px;
+    }}
+
     /* Cor da pergunta na Sidebar (Azul Escuro) */
     .stSelectbox label p {{
         color: #1A237E !important; 
         font-weight: bold;
         font-size: 16px;
-    }}
-
-    /* Estilo da barra lateral */
-    [data-testid="stSidebar"] {{
-        background-color: #ffffff;
     }}
 
     /* Estilo das mensagens */
@@ -64,6 +65,13 @@ st.markdown(f"""
     
     [data-testid="stChatMessageUser"] {{
         border-radius: 15px;
+    }}
+
+    /* Botão customizado */
+    .stButton>button {{
+        border-radius: 20px;
+        border: 1px solid #07b458;
+        color: #07b458;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -82,7 +90,7 @@ if "messages" not in st.session_state:
 # --- BARRA LATERAL (SIDEBAR) ---
 with st.sidebar:
     st.image("logo.png", use_column_width=True)
-    st.title("Área do Aluno")
+    st.title("Área do Aluno") # Este título agora é Verde OPEE
     
     # Seletor de Matéria
     materia = st.selectbox(
@@ -92,18 +100,6 @@ with st.sidebar:
     
     st.divider()
     
-    # BARRA DE PROGRESSO
-    # O progresso aumenta com base no número de interações (máximo 10 para completar a barra)
-    st.subheader("🎯 Seu Progresso")
-    num_interacoes = len([m for m in st.session_state.messages if m["role"] == "user"])
-    progresso = min(num_interacoes * 10, 100) # 10% por pergunta, até 100%
-    st.progress(progresso / 100)
-    st.caption(f"Você já fez {num_interacoes} perguntas nesta sessão.")
-    
-    if progresso == 100:
-        st.success("Incrível! Você atingiu a meta de estudos hoje! 🏆")
-
-    st.divider()
     if st.button("🗑️ Reiniciar Conversa"):
         st.session_state.messages = []
         st.rerun()
@@ -112,7 +108,7 @@ with st.sidebar:
 
 # --- INTERFACE PRINCIPAL ---
 
-# Título com Explicação ao passar o mouse
+# Título Principal com Tooltip
 st.markdown("""
     <div class="tooltip">Opeera (Gestor Educacional)
         <span class="tooltiptext">
@@ -121,6 +117,7 @@ st.markdown("""
     </div>
     """, unsafe_allow_html=True)
 
+# Subtítulo Assistente em Verde OPEE
 st.markdown(f"<h3 style='color: #07b458; margin-top: -15px;'>Assistente de {materia}</h3>", unsafe_allow_html=True)
 
 # --- LÓGICA DO CHAT ---
@@ -132,12 +129,12 @@ prompts_especificos = {
     "Ciências e Biologia": "Você é um cientista. Use analogias do cotidiano."
 }
 
-# Prompt de sistema (injetado sempre na primeira interação)
 system_prompt = {"role": "system", "content": f"{prompts_especificos[materia]} Responda em português e seja motivador."}
 
 # Exibir histórico
 for message in st.session_state.messages:
-    with st.chat_message(message["role"], avatar="👤" if message["role"] == "user" else "🤖"):
+    avatar = "👤" if message["role"] == "user" else "🤖"
+    with st.chat_message(message["role"], avatar=avatar):
         st.markdown(message["content"])
 
 # Entrada do Aluno
@@ -149,7 +146,6 @@ if prompt := st.chat_input("Como posso te ajudar agora?"):
     with st.chat_message("assistant", avatar="🤖"):
         with st.spinner("OPEERA está formulando sua explicação..."):
             try:
-                # Prepara o envio incluindo o system prompt atualizado
                 mensagens_com_contexto = [system_prompt] + st.session_state.messages
                 
                 chat_completion = client.chat.completions.create(
@@ -160,8 +156,6 @@ if prompt := st.chat_input("Como posso te ajudar agora?"):
                 response = chat_completion.choices[0].message.content
                 st.markdown(response)
                 st.session_state.messages.append({"role": "assistant", "content": response})
-                
-                # Força o refresh para atualizar a barra de progresso na lateral
                 st.rerun()
                 
             except Exception as e:
