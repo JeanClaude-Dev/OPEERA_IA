@@ -24,8 +24,7 @@ except Exception:
 # --- BARRA LATERAL (SIDEBAR) ---
 with st.sidebar:
     # Espaço para o Logo (Se tiver o arquivo no GitHub, descomente a linha abaixo)
-     st.image("logo.png", use_column_width=True)
-    
+    st.image("logo.png", use_column_width=True)
     st.title("🎓 Área do Aluno")
     st.subheader("Configurações de Estudo")
     
