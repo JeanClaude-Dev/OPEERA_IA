@@ -3,14 +3,53 @@ from groq import Groq
 import os
 
 # Configuração inicial da página
-st.set_page_config(page_title="OPEERA - Tutor Inteligente da Opee Educação", page_icon="🎓", layout="centered")
+st.set_page_config(page_title="OPEERA - Tutor Inteligente", page_icon="🎓", layout="centered")
 
-# --- ESTILIZAÇÃO PARA UM LOOK PROFISSIONAL ---
-st.markdown("""
+# --- ESTILIZAÇÃO PERSONALIZADA (CSS) ---
+st.markdown(f"""
     <style>
-    .stChatMessage { border-radius: 15px; margin-bottom: 10px; border: 1px solid #f0f2f6; }
-    .stChatInput { border-radius: 10px; }
-    [data-testid="stSidebar"] { background-color: #f8f9fa; }
+    /* Cor principal nos títulos da Sidebar */
+    [data-testid="stSidebar"] h1 {{
+        color: #07b458;
+        font-weight: 800;
+    }}
+    
+    /* Customização das mensagens do Chat */
+    .stChatMessage {{
+        border-radius: 15px;
+        margin-bottom: 10px;
+    }}
+    
+    /* Borda de destaque na mensagem do assistente */
+    [data-testid="stChatMessageAssistant"] {{
+        border: 1px solid #07b458;
+        background-color: #f9fffb;
+    }}
+
+    /* Estilização do Botão de Reiniciar */
+    .stButton>button {{
+        width: 100%;
+        border-radius: 20px;
+        border: 1px solid #07b458;
+        color: #07b458;
+        background-color: transparent;
+    }}
+    
+    .stButton>button:hover {{
+        background-color: #07b458;
+        color: white;
+    }}
+
+    /* Cor do Spinner e elementos de carregamento */
+    .stSpinner > div {{
+        border-top-color: #07b458 !important;
+    }}
+    
+    /* Ajuste da barra lateral */
+    [data-testid="stSidebar"] {{
+        background-color: #ffffff;
+        border-right: 1px solid #eee;
+    }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -18,73 +57,68 @@ st.markdown("""
 try:
     client = Groq(api_key=st.secrets["GROQ_API_KEY"])
 except Exception:
-    st.error("⚠️ Erro: Chave 'GROQ_API_KEY' não encontrada nos Secrets do Streamlit.")
+    st.error("⚠️ Erro: Chave 'GROQ_API_KEY' não encontrada.")
     st.stop()
 
 # --- BARRA LATERAL (SIDEBAR) ---
 with st.sidebar:
-    # Espaço para o Logo (Se tiver o arquivo no GitHub, descomente a linha abaixo)
+    # Logo e Título
     st.image("logo.png", use_column_width=True)
-    st.title("🎓 Área do Aluno")
-    st.subheader("Configurações de Estudo")
+    st.title("Área do Aluno")
     
-    # Menu de Matérias
+    # Menu de Matérias com ícone monocromático
     materia = st.selectbox(
-        "Sobre o que vamos estudar hoje?",
+        "📚 O que vamos estudar hoje?",
         ("Geral", "Matemática", "Português", "História e Geografia", "Ciências e Biologia")
     )
     
-    # Ajuste do System Prompt baseado na matéria
     prompts_especificos = {
-        "Geral": "Você é um tutor educacional versátil. Explique tudo de forma didática.",
-        "Matemática": "Você é um professor de matemática. Use fórmulas em LaTeX, mostre o passo a passo dos cálculos e dê exercícios extras.",
-        "Português": "Você é um professor de gramática e literatura. Foque na norma culta, explique regras ortográficas e dê exemplos de frases.",
-        "História e Geografia": "Você é um historiador e geógrafo. Use contextos temporais, cause-consequência e descrições espaciais.",
-        "Ciências e Biologia": "Você é um cientista. Use termos técnicos explicando seus significados e faça analogias com o mundo real."
+        "Geral": "Você é um tutor educacional versátil da Opee Educação. Explique de forma didática.",
+        "Matemática": "Você é um professor de matemática. Use LaTeX e mostre o passo a passo.",
+        "Português": "Você é um professor de gramática. Foque na norma culta e clareza.",
+        "História e Geografia": "Você é um professor de humanidades. Foque em contextos e causas.",
+        "Ciências e Biologia": "Você é um professor de ciências. Use analogias práticas."
     }
     
     st.divider()
-    if st.button("🗑️ Reiniciar Conversa"):
+    if st.button("Limpar Histórico"):
         st.session_state.messages = []
         st.rerun()
     
-    st.caption("Desenvolvido por: Jcb")
+    st.caption("Desenvolvido por: Jcb | Opee Educação")
 
 # --- INICIALIZAÇÃO DO HISTÓRICO ---
 if "messages" not in st.session_state or len(st.session_state.messages) == 0:
     st.session_state.messages = [
-        {"role": "system", "content": f"{prompts_especificos[materia]} Responda sempre em português. Seja encorajador e paciente."}
+        {"role": "system", "content": f"{prompts_especificos[materia]} Responda sempre em português. Seja encorajador."}
     ]
 
 # --- INTERFACE DE CHAT ---
-st.write(f"### Assistente de **{materia}**")
+st.markdown(f"<h3 style='color: #444;'>Assistente de {materia}</h3>", unsafe_allow_html=True)
 
-# Exibir histórico de mensagens
+# Exibir histórico (usando ícones cinzas para manter o foco no verde do layout)
 for message in st.session_state.messages:
     if message["role"] != "system":
-        with st.chat_message(message["role"]):
+        avatar = "👤" if message["role"] == "user" else "🤖"
+        with st.chat_message(message["role"], avatar=avatar):
             st.markdown(message["content"])
 
 # --- LÓGICA DE INTERAÇÃO ---
-if prompt := st.chat_input("Como posso te ajudar com essa matéria?"):
-    # Adiciona mensagem do aluno
+if prompt := st.chat_input("Escreva sua dúvida aqui..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
+    with st.chat_message("user", avatar="👤"):
         st.markdown(prompt)
 
-    # Chamada para a IA (Groq)
-    with st.chat_message("assistant"):
-        with st.spinner("Preparando explicação..."):
+    with st.chat_message("assistant", avatar="🤖"):
+        with st.spinner("OPEERA está processando..."):
             try:
                 chat_completion = client.chat.completions.create(
                     messages=st.session_state.messages,
-                    model="llama-3-8b-8192", # Modelo ultra rápido e grátis
+                    model="llama-3.1-8b-instant",
                     temperature=0.6,
                 )
                 response = chat_completion.choices[0].message.content
                 st.markdown(response)
-                
-                # Salva a resposta da IA na memória
                 st.session_state.messages.append({"role": "assistant", "content": response})
             except Exception as e:
-                st.error(f"Erro ao conectar com o servidor: {e}")
+                st.error(f"Erro de conexão: {e}")
